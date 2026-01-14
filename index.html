@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampGuard Expert v11.0</title>
+    <title>CampGuard Expert v11.1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
-        :root { --bg: #0b0f1a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; }
+        :root { --bg: #0b0f1a; --card: #1e293b; --accent: #38bdf8; --danger: #ef4444; --warning: #f59e0b; --text: #f1f5f9; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
         .container { max-width: 480px; margin: 0 auto; padding: 15px; }
         .page { display: none; }
         .active { display: block; }
         
-        /* メインカード */
-        .main-card { background: var(--card); border-radius: 28px; padding: 20px; text-align: center; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
-        .score { font-size: 4rem; font-weight: 900; color: var(--accent); }
+        /* メインカード & メーター */
+        .main-card { background: var(--card); border-radius: 28px; padding: 20px; text-align: center; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); position: relative; }
+        .gauge-container { position: relative; height: 180px; margin-bottom: -40px; }
+        .score-display { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .score-num { font-size: 4rem; font-weight: 900; line-height: 1; }
         
         /* 検索バー */
         .search-box { display: flex; gap: 8px; margin-bottom: 20px; }
@@ -22,12 +24,12 @@
         .btn-diag { background: var(--accent); color: #0f172a; border: none; border-radius: 12px; padding: 0 20px; font-weight: bold; cursor: pointer; }
 
         /* タイムライン */
-        .timeline { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; }
-        .t-item { background: #334155; padding: 10px; border-radius: 12px; min-width: 60px; text-align: center; }
+        .timeline { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+        .t-item { background: #334155; padding: 10px; border-radius: 12px; min-width: 60px; text-align: center; flex: 0 0 auto; }
 
         /* ナビゲーション */
-        .nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; display: flex; justify-content: space-around; padding: 15px; }
-        .nav-item { cursor: pointer; font-size: 0.8rem; opacity: 0.6; }
+        .nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; display: flex; justify-content: space-around; padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .nav-item { cursor: pointer; font-size: 0.8rem; opacity: 0.6; text-align: center; }
         .nav-item.active { opacity: 1; color: var(--accent); }
         
         .loading { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000; }
@@ -47,28 +49,34 @@
 
         <div id="resultArea" style="display:none;">
             <div class="main-card">
-                <div id="resLoc" style="font-size:0.8rem; color:var(--accent);"></div>
-                <div id="resScore" class="score">--</div>
-                <div id="resAdv" style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; text-align:left; font-size:0.9rem; margin:15px 0;"></div>
+                <div id="resLoc" style="font-size:0.8rem; color:var(--accent); margin-bottom: 10px;"></div>
+                <div class="gauge-container">
+                    <canvas id="gaugeChart"></canvas>
+                    <div class="score-display">
+                        <div id="resScore" class="score-num">--</div>
+                    </div>
+                </div>
                 
-                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; font-size:0.7rem;">
-                    <div>最大風速<br><b id="resWind"></b></div>
-                    <div>最高気温<br><b id="resMaxT"></b></div>
-                    <div>最低気温<br><b id="resMinT"></b></div>
+                <div id="resAdv" style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; text-align:left; font-size:0.9rem; margin:15px 0; border-left: 4px solid var(--accent);"></div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; font-size:0.75rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
+                    <div>最大風速<br><b id="resWind" style="font-size:1rem;"></b></div>
+                    <div>最高気温<br><b id="resMaxT" style="font-size:1rem;"></b></div>
+                    <div>最低気温<br><b id="resMinT" style="font-size:1rem;"></b></div>
                 </div>
             </div>
 
             <div id="resTimeline" class="timeline"></div>
 
-            <div class="main-card" style="text-align:left; font-size:0.8rem;">
-                <div style="font-weight:bold; color:var(--accent);">🛡️ 推奨装備チェック</div>
-                <div id="resGear" style="margin-top:10px;"></div>
+            <div class="main-card" style="text-align:left; font-size:0.85rem;">
+                <div style="font-weight:bold; color:var(--accent); margin-bottom:10px;">🛡️ 推奨装備チェック</div>
+                <div id="resGear"></div>
             </div>
         </div>
     </div>
 
     <div id="pageDiary" class="page">
-        <h2 style="text-align:center;">Camp <span style="color:var(--accent)">Diary</span></h2>
+        <h2 style="text-align:center;">Camp Diary</h2>
         <div class="main-card">
             <input type="text" id="dPlace" placeholder="キャンプ場名" style="width:100%; box-sizing:border-box; margin-bottom:10px; padding:12px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:white;">
             <input type="text" id="dTopic" placeholder="タイトル" style="width:100%; box-sizing:border-box; margin-bottom:10px; padding:12px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:white;">
@@ -91,6 +99,7 @@
 
 <script>
     const gasUrl = "https://script.google.com/macros/s/AKfycbyqDTFt6HyyWfDLJJTkB2hQfSik9oJJfmIJBsRZ4U_kacbxYjlE2lB759s7scGMhaHx/exec";
+    let myChart;
 
     function switchPage(id, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -116,24 +125,38 @@
             document.getElementById('resMaxT').innerText = data.maxTemp + "℃";
             document.getElementById('resMinT').innerText = data.minTemp + "℃";
 
-            // ギア判定
+            // メーター描画
+            updateGauge(data.score);
+
+            // ギア
             let gearHtml = "";
             if(data.maxWind > 5) gearHtml += "✅ 30cm以上の鍛造ペグ<br>";
-            if(data.minTemp < 10) gearHtml += "✅ 冬用シュラフ・湯たんぽ<br>";
-            if(gearHtml === "") gearHtml = "標準装備でOK";
-            document.getElementById('resGear').innerHTML = gearHtml;
+            if(data.minTemp < 10) gearHtml += "✅ 冬用シュラフ・ストーブ<br>";
+            document.getElementById('resGear').innerHTML = gearHtml || "標準装備でOK";
 
             // タイムライン
             document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `
                 <div class="t-item">
                     <div style="font-size:0.6rem;">${t.time}</div>
                     <img src="https://openweathermap.org/img/wn/${t.icon}.png" width="25">
-                    <div style="font-weight:bold; font-size:0.8rem;">${t.temp}℃</div>
+                    <div style="font-weight:bold;">${t.temp}℃</div>
                 </div>
             `).join('');
 
         } catch(e) { alert("診断失敗"); }
         loader.style.display = 'none';
+    }
+
+    function updateGauge(score) {
+        const ctx = document.getElementById('gaugeChart').getContext('2d');
+        const color = score >= 70 ? '#ef4444' : (score >= 40 ? '#f59e0b' : '#10b981');
+        
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: { datasets: [{ data: [score, 100 - score], backgroundColor: [color, '#334155'], borderWidth: 0, circumference: 180, rotation: 270, cutout: '85%' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 1500 } }
+        });
     }
 
     async function saveDiary() {
@@ -142,8 +165,6 @@
         const content = document.getElementById('dContent').value;
         await fetch(`${gasUrl}?mode=postDiary&place=${encodeURIComponent(place)}&topic=${encodeURIComponent(topic)}&content=${encodeURIComponent(content)}`);
         alert("日記を保存しました！");
-        document.getElementById('dTopic').value = "";
-        document.getElementById('dContent').value = "";
     }
 
     async function loadHistory(el) {
@@ -154,7 +175,7 @@
             <div class="main-card" style="text-align:left; font-size:0.85rem;">
                 <div style="color:var(--accent); font-size:0.7rem;">${new Date(d.date).toLocaleDateString()} @${d.place}</div>
                 <div style="font-weight:bold; margin:5px 0;">${d.topic}</div>
-                <div style="opacity:0.8;">${d.content}</div>
+                <div>${d.content}</div>
             </div>
         `).join('');
     }
