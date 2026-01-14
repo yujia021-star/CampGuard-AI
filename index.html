@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampGuard Expert v6.2</title>
+    <title>CampGuard Expert v7.1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
@@ -28,18 +28,16 @@
         .guide-box { margin: 15px 0; padding: 15px; border-radius: 16px; background: rgba(255,255,255,0.05); text-align: left; font-size: 0.85rem; line-height: 1.5; display: none; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
         .stat-label { font-size: 0.6rem; color: #94a3b8; font-weight: bold; display: block; }
-        .stat-val { font-size: 0.85rem; font-weight: bold; }
+        .stat-val { font-size: 0.75rem; font-weight: bold; }
 
         .reason-box { margin-top: 15px; text-align: left; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; font-size: 0.75rem; color: #cbd5e1; display: none; }
 
-        /* 3時間おき時系列タイムライン (スクロール可能) */
         .timeline-scroll { overflow-x: auto; display: flex; gap: 10px; margin-bottom: 15px; padding-bottom: 5px; scrollbar-width: none; }
         .timeline-scroll::-webkit-scrollbar { display: none; }
         .time-item { flex: 0 0 75px; background: var(--card); padding: 10px; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
         .time-label { font-size: 0.7rem; font-weight: bold; color: var(--accent); }
         .weather-icon { font-size: 1.2rem; margin: 4px 0; display: block; }
         .time-detail { font-size: 0.75rem; font-weight: bold; }
-        .time-rain { font-size: 0.6rem; color: #94a3b8; }
 
         .checklist-card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
         .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
@@ -49,7 +47,7 @@
 </head>
 <body>
 
-<div id="loader" class="loading">全期間(3時間毎)を解析中...</div>
+<div id="loader" class="loading">夏冬全リスクを診断中...</div>
 
 <div class="container">
     <div class="header"><h2 style="margin:0; font-weight:900;">CampGuard <span style="color:var(--accent)">Expert</span></h2></div>
@@ -75,9 +73,9 @@
         </div>
 
         <div class="stats-grid">
-            <div class="stat-item"><span class="stat-label">期間内最大風速</span><span id="statWind" class="stat-val">--</span></div>
-            <div class="stat-item"><span class="stat-label">最大降水量</span><span id="statRain" class="stat-val">--</span></div>
-            <div class="stat-item"><span class="stat-label">災害警告</span><span id="statAlert" class="stat-val">--</span></div>
+            <div class="stat-item"><span class="stat-label">最高/最低気温</span><span id="statTemp" class="stat-val">--</span></div>
+            <div class="stat-item"><span class="stat-label">最大風速</span><span id="statWind" class="stat-val">--</span></div>
+            <div class="stat-item"><span class="stat-label">最小風速(無風)</span><span id="statMinWind" class="stat-val">--</span></div>
         </div>
 
         <div id="reasonArea" class="reason-box">
@@ -98,7 +96,7 @@
     </div>
 
     <div id="aiAdviceArea" class="checklist-card" style="display:none; border-left: 5px solid var(--warning);">
-        <div style="font-weight:bold; color:var(--warning); margin-bottom:12px;">⚠️ 予報連動の推奨装備</div>
+        <div style="font-weight:bold; color:var(--warning); margin-bottom:12px;">⚠️ 予報・季節連動の推奨装備</div>
         <div id="aiGearList"></div>
     </div>
 </div>
@@ -127,9 +125,9 @@
             
             document.getElementById('scoreVal').innerText = data.score;
             document.getElementById('locName').innerText = data.locationName;
+            document.getElementById('statTemp').innerText = `${data.maxTemp} / ${data.minTemp}℃`;
             document.getElementById('statWind').innerText = data.windSpeed + "m/s";
-            document.getElementById('statRain').innerText = data.rain + "mm/h";
-            document.getElementById('statAlert').innerText = data.snsReports > 0 ? "⚠️警報あり" : "なし";
+            document.getElementById('statMinWind').innerText = data.minWind + "m/s";
 
             document.getElementById('actionGuideText').innerText = data.actionGuide;
             document.getElementById('guideArea').style.display = 'block';
@@ -139,14 +137,13 @@
             document.getElementById('reasonList').innerHTML = data.reasons.map(r => `・ ${r}`).join('<br>');
             document.getElementById('reasonArea').style.display = 'block';
 
-            // タイムラインの構築
             const timelineArea = document.getElementById('timelineArea');
             timelineArea.innerHTML = data.timeline.map(t => `
                 <div class="time-item">
                     <div class="time-label">${t.time}</div>
                     <span class="weather-icon">${getWeatherEmoji(t.desc)}</span>
-                    <div class="time-detail">${t.temp}℃ / ${t.wind}m</div>
-                    <div class="time-rain">${t.rain}mm/h</div>
+                    <div class="time-detail">${t.temp}℃</div>
+                    <div style="font-size:0.6rem; color:#94a3b8;">${t.wind}m</div>
                 </div>
             `).join('');
 
@@ -154,7 +151,7 @@
             document.getElementById('aiAdviceArea').style.display = 'block';
 
             updateTheme(data.score);
-        } catch (e) { alert("解析失敗。ネットワークを確認してください。"); }
+        } catch (e) { alert("データ取得エラー"); }
         document.getElementById('loader').style.display = 'none';
     }
 
@@ -162,6 +159,7 @@
         if (desc.includes("晴")) return "☀️";
         if (desc.includes("曇")) return "☁️";
         if (desc.includes("雨")) return "☔";
+        if (desc.includes("雷")) return "⚡";
         return "⛅";
     }
 
