@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampGuard Pro AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: rgba(30, 41, 59, 0.7);
+            --accent: #38bdf8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --text: #f1f5f9;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            transition: background 1s ease;
+        }
+        body.high-risk { background: linear-gradient(135deg, #450a0a 0%, #0f172a 100%); }
+
+        .container { width: 100%; max-width: 450px; padding: 25px; box-sizing: border-box; }
+        .header h1 { font-size: 1.8rem; margin: 0; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .search-box { position: relative; margin: 20px 0 30px 0; }
+        input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #334155; background: var(--card); color: white; box-sizing: border-box; font-size: 1rem; outline: none; }
+        button { position: absolute; right: 8px; top: 8px; padding: 8px 20px; border-radius: 8px; border: none; background: var(--accent); color: #0f172a; font-weight: bold; cursor: pointer; }
+
+        .gauge-container { 
+            background: var(--card); border-radius: 24px; padding: 30px 20px; text-align: center; 
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 25px; position: relative;
+        }
+        .chart-box { height: 200px; width: 100%; }
+        .score-label { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); width: 100%;}
+        .score-number { font-size: 4rem; font-weight: 800; line-height: 1; color: var(--text); }
+        .location-tag { font-size: 0.8rem; color: var(--accent); margin-top: 10px; display: block; font-weight: bold; padding: 0 20px; word-break: break-all; }
+
+        .result-card { background: var(--card); border-radius: 24px; padding: 25px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); display: none; }
+        
+        .badge { padding: 5px 15px; border-radius: 50px; font-size: 0.75rem; font-weight: bold; margin-bottom: 15px; display: inline-block; }
+        .badge.danger { background: var(--danger); color: white; }
+        .badge.warning { background: var(--warning); color: #0f172a; }
+        .badge.safe { background: var(--success); color: white; }
+        
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+        .info-item { text-align: center; }
+        .info-label { font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px; }
+        .info-value { font-size: 0.9rem; font-weight: bold; color: var(--text); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>CampGuard Pro</h1>
+        <p style="color: #94a3b8; font-size: 0.85rem;">Smart Risk Analytics</p>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="locationInput" placeholder="地名・キャンプ場名を入力" value="ふもとっぱら">
+        <button onclick="diagnose()">診断</button>
+    </div>
+
+    <div class="gauge-container">
+        <div class="chart-box"><canvas id="gaugeChart"></canvas></div>
+        <div class="score-label">
+            <span id="scoreValue" class="score-number">--</span>
+            <span id="targetName" class="location-tag">Ready</span>
+        </div>
+    </div>
+
+    <div id="resultArea" class="result-card">
+        <div id="statusBadge" class="badge">ANALYZING</div>
+        <div id="message" style="font-size: 1.1rem; font-weight: 500; line-height: 1.4;"></div>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">WIND</span>
+                <span id="windVal" class="info-value">-- m/s</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">RAIN</span>
+                <span id="rainVal" class="info-value">-- mm</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">ALERTS</span>
+                <span id="alertVal" class="info-value">--</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let myChart;
+    // ★ GASのURLが正しいか確認してください
+    const gasUrl = "https://script.google.com/macros/s/AKfycbyqDTFt6HyyWfDLJJTkB2hQfSik9oJJfmIJBsRZ4U_kacbxYjlE2lB759s7scGMhaHx/exec";
+
+    function initChart() {
+        const ctx = document.getElementById('gaugeChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [1, 1, 1],
+                    backgroundColor: ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)'],
+                    borderWidth: 0, circumference: 180, rotation: 270,
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '85%', plugins: { legend: { display: false } } }
+        });
+    }
+
+    async function diagnose() {
+        const loc = document.getElementById('locationInput').value;
+        const scoreDisp = document.getElementById('scoreValue');
+        const targetDisp = document.getElementById('targetName');
+        
+        targetDisp.innerText = "Analyzing...";
+        
+        try {
+            const res = await fetch(`${gasUrl}?place=${encodeURIComponent(loc)}`);
+            const data = await res.json();
+            
+            scoreDisp.innerText = data.score;
+            targetDisp.innerText = data.locationName;
+            
+            document.getElementById('windVal').innerText = data.windSpeed + " m/s";
+            document.getElementById('rainVal').innerText = data.rain + " mm";
+            document.getElementById('alertVal').innerText = data.snsReports;
+            
+            updateUI(data.score, data.snsReports);
+            
+            document.getElementById('resultArea').style.display = 'block';
+            document.getElementById('message').innerText = data.advice;
+            
+        } catch (e) {
+            scoreDisp.innerText = "ERR";
+            targetDisp.innerText = "Error. Try again.";
+        }
+    }
+
+    function updateUI(score, alerts) {
+        const badge = document.getElementById('statusBadge');
+        const colors = myChart.data.datasets[0].backgroundColor;
+        colors.fill('rgba(255,255,255,0.1)');
+        document.body.classList.remove('high-risk');
+
+        if (score >= 70 || alerts > 0) {
+            badge.className = "badge danger";
+            badge.innerText = alerts > 0 ? "CRITICAL ALERT" : "HIGH RISK";
+            colors[2] = '#ef4444';
+            document.body.classList.add('high-risk');
+        } else if (score >= 40) {
+            badge.className = "badge warning";
+            badge.innerText = "CAUTION";
+            colors[1] = '#f59e0b';
+        } else {
+            badge.className = "badge safe";
+            badge.innerText = "STABLE";
+            colors[0] = '#10b981';
+        }
+        myChart.update();
+    }
+    window.onload = initChart;
+</script>
+</body>
+</html>
