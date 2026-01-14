@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampGuard Expert v6.0</title>
+    <title>CampGuard Expert v6.2</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
@@ -11,32 +11,35 @@
             --accent: #38bdf8; --danger: #ef4444; --warning: #f59e0b; --success: #10b981;
             --text: #f1f5f9;
         }
-        body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--bg); color: var(--text); transition: background 1.5s ease; min-height: 100vh; }
-        .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--bg); color: var(--text); transition: background 1s ease; min-height: 100vh; }
+        .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 15px; box-sizing: border-box; }
         
-        .search-row { display: flex; gap: 8px; margin: 15px 0; }
+        .search-row { display: flex; gap: 8px; margin: 10px 0; }
         input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #334155; background: var(--card); color: white; outline: none; }
-        .btn-gps { background: #475569; padding: 10px; border-radius: 12px; border: none; cursor: pointer; font-size: 1.2rem; }
+        .btn-gps { background: #475569; padding: 10px; border-radius: 12px; border: none; cursor: pointer; }
         .btn-diag { background: var(--accent); color: #0f172a; font-weight: 800; border: none; border-radius: 12px; padding: 0 20px; cursor: pointer; }
         
         .main-card { background: var(--card); border-radius: 28px; padding: 25px 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; margin-bottom: 15px; }
         .chart-box { height: 160px; width: 100%; position: relative; }
         .score-display { position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%); width: 100%; }
         .score-num { font-size: 3.5rem; font-weight: 900; line-height: 1; }
-        .loc-tag { font-size: 0.85rem; color: var(--accent); margin-top: 8px; font-weight: bold; }
+        .loc-tag { font-size: 0.8rem; color: var(--accent); margin-top: 8px; font-weight: bold; }
 
-        .guide-box { margin-top: 20px; padding: 15px; border-radius: 16px; background: rgba(255,255,255,0.05); text-align: left; font-size: 0.9rem; line-height: 1.5; display: none; }
-        .guide-title { font-size: 0.7rem; color: #94a3b8; font-weight: bold; margin-bottom: 8px; }
-
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .guide-box { margin: 15px 0; padding: 15px; border-radius: 16px; background: rgba(255,255,255,0.05); text-align: left; font-size: 0.85rem; line-height: 1.5; display: none; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
         .stat-label { font-size: 0.6rem; color: #94a3b8; font-weight: bold; display: block; }
         .stat-val { font-size: 0.85rem; font-weight: bold; }
 
         .reason-box { margin-top: 15px; text-align: left; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; font-size: 0.75rem; color: #cbd5e1; display: none; }
 
-        .timeline { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .time-box { background: var(--card); padding: 10px; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
-        .weather-icon { font-size: 1.1rem; margin: 3px 0; display: block; }
+        /* 3時間おき時系列タイムライン (スクロール可能) */
+        .timeline-scroll { overflow-x: auto; display: flex; gap: 10px; margin-bottom: 15px; padding-bottom: 5px; scrollbar-width: none; }
+        .timeline-scroll::-webkit-scrollbar { display: none; }
+        .time-item { flex: 0 0 75px; background: var(--card); padding: 10px; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .time-label { font-size: 0.7rem; font-weight: bold; color: var(--accent); }
+        .weather-icon { font-size: 1.2rem; margin: 4px 0; display: block; }
+        .time-detail { font-size: 0.75rem; font-weight: bold; }
+        .time-rain { font-size: 0.6rem; color: #94a3b8; }
 
         .checklist-card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
         .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
@@ -46,7 +49,7 @@
 </head>
 <body>
 
-<div id="loader" class="loading">全期間の気象をトラッキング中...</div>
+<div id="loader" class="loading">全期間(3時間毎)を解析中...</div>
 
 <div class="container">
     <div class="header"><h2 style="margin:0; font-weight:900;">CampGuard <span style="color:var(--accent)">Expert</span></h2></div>
@@ -67,7 +70,7 @@
         </div>
 
         <div id="guideArea" class="guide-box">
-            <div class="guide-title">AI 行動指示</div>
+            <div style="font-size:0.65rem; color:#94a3b8; margin-bottom:5px;">AI 行動指示</div>
             <div id="actionGuideText" style="white-space: pre-wrap; font-weight: bold;"></div>
         </div>
 
@@ -83,11 +86,7 @@
         </div>
     </div>
 
-    <div class="timeline">
-        <div class="time-box"><div>今</div><span id="iconNow">--</span><div id="windNow">--</div></div>
-        <div class="time-box"><div>今夜</div><span id="iconNight">--</span><div id="windNight">--</div></div>
-        <div class="time-box"><div>明日</div><span id="iconNext">--</span><div id="windNext">--</div></div>
-    </div>
+    <div id="timelineArea" class="timeline-scroll"></div>
 
     <div class="checklist-card">
         <div style="font-weight:bold; color:var(--accent); margin-bottom:12px;">🎒 マイ・ギアリスト</div>
@@ -130,7 +129,7 @@
             document.getElementById('locName').innerText = data.locationName;
             document.getElementById('statWind').innerText = data.windSpeed + "m/s";
             document.getElementById('statRain').innerText = data.rain + "mm/h";
-            document.getElementById('statAlert').innerText = data.snsReports > 0 ? "⚠️警報中" : "なし";
+            document.getElementById('statAlert').innerText = data.snsReports > 0 ? "⚠️警報あり" : "なし";
 
             document.getElementById('actionGuideText').innerText = data.actionGuide;
             document.getElementById('guideArea').style.display = 'block';
@@ -140,18 +139,22 @@
             document.getElementById('reasonList').innerHTML = data.reasons.map(r => `・ ${r}`).join('<br>');
             document.getElementById('reasonArea').style.display = 'block';
 
-            document.getElementById('iconNow').innerText = getWeatherEmoji(data.forecast.nowDesc);
-            document.getElementById('windNow').innerText = data.windSpeed + "m";
-            document.getElementById('iconNight').innerText = getWeatherEmoji(data.forecast.nightDesc);
-            document.getElementById('windNight').innerText = data.forecast.night + "m";
-            document.getElementById('iconNext').innerText = getWeatherEmoji(data.forecast.tomorrowDesc);
-            document.getElementById('windNext').innerText = data.forecast.tomorrow + "m";
+            // タイムラインの構築
+            const timelineArea = document.getElementById('timelineArea');
+            timelineArea.innerHTML = data.timeline.map(t => `
+                <div class="time-item">
+                    <div class="time-label">${t.time}</div>
+                    <span class="weather-icon">${getWeatherEmoji(t.desc)}</span>
+                    <div class="time-detail">${t.temp}℃ / ${t.wind}m</div>
+                    <div class="time-rain">${t.rain}mm/h</div>
+                </div>
+            `).join('');
 
             document.getElementById('aiGearList').innerHTML = data.gearAdvice.map(a => `<div class="check-item" style="color:var(--warning)"><input type="checkbox"><span>${a}</span></div>`).join('');
             document.getElementById('aiAdviceArea').style.display = 'block';
 
             updateTheme(data.score);
-        } catch (e) { alert("データ取得エラー"); }
+        } catch (e) { alert("解析失敗。ネットワークを確認してください。"); }
         document.getElementById('loader').style.display = 'none';
     }
 
