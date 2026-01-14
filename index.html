@@ -3,110 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampGuard Expert Ver 10.0</title>
+    <title>CampGuard Expert v11.0</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
-        :root { --bg: #0b0f1a; --card: rgba(30, 41, 59, 0.9); --accent: #38bdf8; --text: #f1f5f9; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
+        :root { --bg: #0b0f1a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
         .container { max-width: 480px; margin: 0 auto; padding: 15px; }
-        
-        /* タブ切り替え */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; display: flex; justify-content: space-around; padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 1000; }
-        .tab-item { color: #94a3b8; font-size: 0.75rem; text-decoration: none; cursor: pointer; text-align: center; }
-        .tab-item.active { color: var(--accent); font-weight: bold; }
-
         .page { display: none; }
-        .page.active { display: block; }
-
-        /* メインカード類はVer 9.2を継承 */
-        .main-card { background: var(--card); border-radius: 28px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; margin-bottom: 15px; }
+        .active { display: block; }
         
-        /* 日記入力フォーム */
-        .diary-form input, .diary-form textarea { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 12px; background: #1a2236; border: 1px solid #334155; color: white; box-sizing: border-box; }
-        .btn-post { background: var(--accent); color: #0b0f1a; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; }
+        /* メインカード */
+        .main-card { background: var(--card); border-radius: 28px; padding: 20px; text-align: center; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        .score { font-size: 4rem; font-weight: 900; color: var(--accent); }
+        
+        /* 検索バー */
+        .search-box { display: flex; gap: 8px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: white; }
+        .btn-diag { background: var(--accent); color: #0f172a; border: none; border-radius: 12px; padding: 0 20px; font-weight: bold; cursor: pointer; }
 
-        /* リスト表示 */
-        .diary-item { background: var(--card); border-radius: 16px; padding: 15px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05); }
+        /* タイムライン */
+        .timeline { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; }
+        .t-item { background: #334155; padding: 10px; border-radius: 12px; min-width: 60px; text-align: center; }
+
+        /* ナビゲーション */
+        .nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; display: flex; justify-content: space-around; padding: 15px; }
+        .nav-item { cursor: pointer; font-size: 0.8rem; opacity: 0.6; }
+        .nav-item.active { opacity: 1; color: var(--accent); }
+        
+        .loading { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000; }
     </style>
 </head>
 <body>
 
+<div id="loader" class="loading">解析中...</div>
+
 <div class="container">
-    <div id="diagnosePage" class="page active">
+    <div id="pageDiag" class="page active">
         <h2 style="text-align:center;">CampGuard <span style="color:var(--accent)">Expert</span></h2>
-        <div class="search-row" style="display:flex; gap:8px; margin-bottom:15px;">
-            <input type="text" id="locInput" value="喜多方市" style="flex:1; padding:12px; border-radius:12px; border:1px solid #334155; background:var(--card); color:white;">
-            <button onclick="diagnose()" style="background:var(--accent); border:none; border-radius:12px; padding:0 15px; font-weight:bold;">診断</button>
+        <div class="search-box">
+            <input type="text" id="loc" value="鵠沼">
+            <button class="btn-diag" onclick="diagnose()">診断</button>
         </div>
-        <div id="resultArea">診断結果がここに表示されます</div>
+
+        <div id="resultArea" style="display:none;">
+            <div class="main-card">
+                <div id="resLoc" style="font-size:0.8rem; color:var(--accent);"></div>
+                <div id="resScore" class="score">--</div>
+                <div id="resAdv" style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; text-align:left; font-size:0.9rem; margin:15px 0;"></div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; font-size:0.7rem;">
+                    <div>最大風速<br><b id="resWind"></b></div>
+                    <div>最高気温<br><b id="resMaxT"></b></div>
+                    <div>最低気温<br><b id="resMinT"></b></div>
+                </div>
+            </div>
+
+            <div id="resTimeline" class="timeline"></div>
+
+            <div class="main-card" style="text-align:left; font-size:0.8rem;">
+                <div style="font-weight:bold; color:var(--accent);">🛡️ 推奨装備チェック</div>
+                <div id="resGear" style="margin-top:10px;"></div>
+            </div>
+        </div>
     </div>
 
-    <div id="postPage" class="page">
+    <div id="pageDiary" class="page">
         <h2 style="text-align:center;">Camp <span style="color:var(--accent)">Diary</span></h2>
-        <div class="main-card diary-form">
-            <input type="text" id="diaryPlace" placeholder="キャンプ場名">
-            <input type="text" id="diaryTopic" placeholder="トピック（例：サイトの風）">
-            <textarea id="diaryContent" rows="4" placeholder="内容（例：サイトAは北風が防げる）"></textarea>
-            <select id="diaryCategory" style="width:100%; padding:12px; border-radius:12px; background:#1a2236; border:1px solid #334155; color:white; margin-bottom:10px;">
-                <option value="サイト情報">サイト情報</option>
-                <option value="虫・動物">虫・動物</option>
-                <option value="設備・周辺">設備・周辺</option>
-                <option value="その他">その他</option>
-            </select>
-            <button class="btn-post" onclick="submitDiary()">日記を投稿する</button>
+        <div class="main-card">
+            <input type="text" id="dPlace" placeholder="キャンプ場名" style="width:100%; box-sizing:border-box; margin-bottom:10px; padding:12px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:white;">
+            <input type="text" id="dTopic" placeholder="タイトル" style="width:100%; box-sizing:border-box; margin-bottom:10px; padding:12px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:white;">
+            <textarea id="dContent" placeholder="内容" style="width:100%; box-sizing:border-box; margin-bottom:10px; padding:12px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:white; height:100px;"></textarea>
+            <button onclick="saveDiary()" style="width:100%; padding:15px; border-radius:12px; background:var(--accent); border:none; font-weight:bold;">日記を保存</button>
         </div>
     </div>
 
-    <div id="listPage" class="page">
-        <h2 style="text-align:center;">Past <span style="color:var(--accent)">Records</span></h2>
-        <div id="diaryList"></div>
+    <div id="pageHistory" class="page">
+        <h2 style="text-align:center;">History</h2>
+        <div id="historyList"></div>
     </div>
 </div>
 
-<div class="tab-bar">
-    <div class="tab-item active" onclick="showPage('diagnosePage')">🏠<br>診断</div>
-    <div class="tab-item" onclick="showPage('postPage')">✍️<br>日記を書く</div>
-    <div class="tab-item" onclick="loadDiaries()">📚<br>履歴</div>
+<div class="nav">
+    <div class="nav-item active" onclick="switchPage('pageDiag', this)">🏠<br>診断</div>
+    <div class="nav-item" onclick="switchPage('pageDiary', this)">✍️<br>日記</div>
+    <div class="nav-item" onclick="loadHistory(this)">📚<br>履歴</div>
 </div>
 
 <script>
-    const gasUrl = "★あなたのウェブアプリURL★";
+    const gasUrl = "https://script.google.com/macros/s/AKfycbyqDTFt6HyyWfDLJJTkB2hQfSik9oJJfmIJBsRZ4U_kacbxYjlE2lB759s7scGMhaHx/exec";
 
-    function showPage(pageId) {
+    function switchPage(id, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-        // アクティブなタブに色をつける処理
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
     }
 
-    async function submitDiary() {
-        const place = document.getElementById('diaryPlace').value;
-        const topic = document.getElementById('diaryTopic').value;
-        const content = document.getElementById('diaryContent').value;
-        const category = document.getElementById('diaryCategory').value;
-
-        const url = `${gasUrl}?mode=postDiary&place=${encodeURIComponent(place)}&topic=${encodeURIComponent(topic)}&content=${encodeURIComponent(content)}&category=${encodeURIComponent(category)}`;
+    async function diagnose() {
+        const loader = document.getElementById('loader');
+        loader.style.display = 'flex';
+        const place = document.getElementById('loc').value;
         
-        await fetch(url);
-        alert("日記を保存しました！この情報は次回の診断に反映されます。");
-        showPage('diagnosePage');
+        try {
+            const res = await fetch(`${gasUrl}?mode=diagnose&place=${encodeURIComponent(place)}`);
+            const data = await res.json();
+
+            document.getElementById('resultArea').style.display = 'block';
+            document.getElementById('resLoc').innerText = data.locationName;
+            document.getElementById('resScore').innerText = data.score;
+            document.getElementById('resAdv').innerText = data.recommendation;
+            document.getElementById('resWind').innerText = data.maxWind + "m/s";
+            document.getElementById('resMaxT').innerText = data.maxTemp + "℃";
+            document.getElementById('resMinT').innerText = data.minTemp + "℃";
+
+            // ギア判定
+            let gearHtml = "";
+            if(data.maxWind > 5) gearHtml += "✅ 30cm以上の鍛造ペグ<br>";
+            if(data.minTemp < 10) gearHtml += "✅ 冬用シュラフ・湯たんぽ<br>";
+            if(gearHtml === "") gearHtml = "標準装備でOK";
+            document.getElementById('resGear').innerHTML = gearHtml;
+
+            // タイムライン
+            document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `
+                <div class="t-item">
+                    <div style="font-size:0.6rem;">${t.time}</div>
+                    <img src="https://openweathermap.org/img/wn/${t.icon}.png" width="25">
+                    <div style="font-weight:bold; font-size:0.8rem;">${t.temp}℃</div>
+                </div>
+            `).join('');
+
+        } catch(e) { alert("診断失敗"); }
+        loader.style.display = 'none';
     }
 
-    async function loadDiaries() {
-        showPage('listPage');
+    async function saveDiary() {
+        const place = document.getElementById('dPlace').value;
+        const topic = document.getElementById('dTopic').value;
+        const content = document.getElementById('dContent').value;
+        await fetch(`${gasUrl}?mode=postDiary&place=${encodeURIComponent(place)}&topic=${encodeURIComponent(topic)}&content=${encodeURIComponent(content)}`);
+        alert("日記を保存しました！");
+        document.getElementById('dTopic').value = "";
+        document.getElementById('dContent').value = "";
+    }
+
+    async function loadHistory(el) {
+        switchPage('pageHistory', el);
         const res = await fetch(`${gasUrl}?mode=getDiaries`);
         const data = await res.json();
-        const list = document.getElementById('diaryList');
-        list.innerHTML = data.map(d => `
-            <div class="diary-item">
-                <div style="font-size:0.7rem; color:var(--accent);">${new Date(d.date).toLocaleDateString()} @${d.place}</div>
+        document.getElementById('historyList').innerHTML = data.map(d => `
+            <div class="main-card" style="text-align:left; font-size:0.85rem;">
+                <div style="color:var(--accent); font-size:0.7rem;">${new Date(d.date).toLocaleDateString()} @${d.place}</div>
                 <div style="font-weight:bold; margin:5px 0;">${d.topic}</div>
-                <div style="font-size:0.85rem; color:#cbd5e1;">${d.content}</div>
+                <div style="opacity:0.8;">${d.content}</div>
             </div>
         `).join('');
     }
-    
-    // diagnose() 関数などはVer 9.2のものを流用
 </script>
 </body>
 </html>
