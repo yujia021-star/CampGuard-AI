@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampGuard Pro - Expert</title>
+    <title>CampGuard Expert - Ultimate</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --bg: #0f172a; --card: rgba(30, 41, 59, 0.8);
+            --bg: #0f172a; --card: rgba(30, 41, 59, 0.9);
             --accent: #38bdf8; --danger: #ef4444; --warning: #f59e0b; --success: #10b981;
             --text: #f1f5f9;
         }
@@ -17,69 +17,86 @@
         }
         .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
         
-        /* 検索と現在地 */
-        .search-row { display: flex; gap: 8px; margin: 20px 0; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: var(--card); color: white; }
-        .btn-gps { background: #475569; padding: 10px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; }
+        .search-row { display: flex; gap: 8px; margin: 15px 0; }
+        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #334155; background: var(--card); color: white; outline: none; }
+        .btn-gps { background: #475569; padding: 10px; border-radius: 12px; border: none; cursor: pointer; font-size: 1.2rem; }
+        .btn-diag { background: var(--accent); color: #0f172a; font-weight: 800; border: none; border-radius: 12px; padding: 0 20px; cursor: pointer; }
         
-        /* メインゲージ */
-        .main-card { background: var(--card); border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; position: relative; margin-bottom: 15px; }
-        .chart-container { height: 180px; position: relative; }
-        .score-display { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); }
-        .score-num { font-size: 3.5rem; font-weight: 900; }
-        
-        /* タイムライン（3段階） */
+        /* メインカード */
+        .main-card { background: var(--card); border-radius: 28px; padding: 25px 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .chart-box { height: 180px; width: 100%; position: relative; margin: 0 auto; }
+        .score-display { position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%); width: 100%; }
+        .score-num { font-size: 4rem; font-weight: 900; line-height: 1; }
+        .loc-tag { font-size: 0.85rem; color: var(--accent); margin-top: 8px; font-weight: bold; }
+
+        /* 風・雨・アラートの横並び */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .stat-item { display: flex; flex-direction: column; gap: 4px; }
+        .stat-label { font-size: 0.65rem; color: #94a3b8; font-weight: bold; }
+        .stat-val { font-size: 1rem; font-weight: bold; }
+
+        /* タイムライン */
         .timeline { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .time-box { background: var(--card); padding: 10px; border-radius: 12px; text-align: center; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.05); }
-        
-        /* 【重要】装備アドバイス */
-        .advice-card { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 20px; padding: 20px; border-left: 5px solid var(--accent); margin-bottom: 15px; display: none; }
-        .advice-title { font-weight: bold; color: var(--accent); margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
-        .gear-item { background: rgba(56, 189, 248, 0.1); padding: 8px 12px; border-radius: 6px; margin: 5px 0; font-size: 0.85rem; border: 1px border: 1px solid rgba(56, 189, 248, 0.2); }
+        .time-box { background: var(--card); padding: 12px; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .time-label { font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; }
 
-        /* 周辺スポット比較 */
-        .nearby-card { background: var(--card); border-radius: 20px; padding: 15px; font-size: 0.8rem; display: none; }
-        .nearby-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        /* 装備アドバイス */
+        .advice-card { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 20px; padding: 20px; border-left: 6px solid var(--accent); margin-bottom: 15px; display: none; text-align: left; }
+        .advice-header { font-weight: bold; color: var(--accent); margin-bottom: 12px; font-size: 1rem; }
+        .gear-list { display: flex; flex-direction: column; gap: 8px; }
+        .gear-item { background: rgba(56, 189, 248, 0.08); padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; line-height: 1.4; border: 1px solid rgba(56, 189, 248, 0.15); }
 
-        .loading-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.9); z-index: 100; display: none; align-items: center; justify-content: center; flex-direction: column; }
+        .nearby-card { background: var(--card); border-radius: 20px; padding: 18px; font-size: 0.85rem; display: none; }
+        .nearby-title { font-weight: bold; margin-bottom: 12px; color: #94a3b8; }
+        .nearby-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .loading { position: fixed; inset: 0; background: rgba(15,23,42,0.9); z-index: 100; display: none; align-items: center; justify-content: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="loader" class="loading-overlay"><div>Analyzing Environment...</div></div>
+<div id="loader" class="loading">環境分析中...</div>
 
 <div class="container">
     <div class="header">
-        <h2 style="margin:0; font-weight:900;">CampGuard <span style="color:var(--accent)">Expert</span></h2>
+        <h2 style="margin:0; font-weight:900; letter-spacing: -1px;">CampGuard <span style="color:var(--accent)">Expert</span></h2>
     </div>
 
     <div class="search-row">
-        <input type="text" id="locInput" placeholder="キャンプ場名・地名" value="喜多方市">
+        <input type="text" id="locInput" placeholder="場所・キャンプ場名" value="喜多方市">
         <button class="btn-gps" onclick="useGPS()">📍</button>
-        <button onclick="diagnose()" style="background:var(--accent); color:black; font-weight:bold; border:none; border-radius:8px; padding:0 20px;">診断</button>
+        <button class="btn-diag" onclick="diagnose()">診断</button>
     </div>
 
     <div class="main-card">
-        <div class="chart-container"><canvas id="gaugeChart"></canvas></div>
-        <div class="score-display">
-            <div id="scoreVal" class="score-num">--</div>
-            <div id="locName" style="font-size:0.8rem; color:var(--accent)">Ready</div>
+        <div class="chart-box">
+            <canvas id="gaugeChart"></canvas>
+            <div class="score-display">
+                <div id="scoreVal" class="score-num">--</div>
+                <div id="locName" class="loc-tag">Ready</div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-item"><span class="stat-label">WIND</span><span id="statWind" class="stat-val">--</span></div>
+            <div class="stat-item"><span class="stat-label">RAIN</span><span id="statRain" class="stat-val">--</span></div>
+            <div class="stat-item"><span class="stat-label">ALERTS</span><span id="statAlert" class="stat-val">--</span></div>
         </div>
     </div>
 
     <div class="timeline">
-        <div class="time-box"><div>今</div><div id="tNow" style="font-weight:bold">--</div></div>
-        <div class="time-box"><div>今夜</div><div id="tNight" style="font-weight:bold">--</div></div>
-        <div class="time-box"><div>明日</div><div id="tNext" style="font-weight:bold">--</div></div>
+        <div class="time-box"><div class="time-label">Now</div><div id="tNow" style="font-weight:bold">--</div></div>
+        <div class="time-box"><div class="time-label">Tonight</div><div id="tNight" style="font-weight:bold">--</div></div>
+        <div class="time-box"><div class="time-label">Tomorrow</div><div id="tNext" style="font-weight:bold">--</div></div>
     </div>
 
     <div id="adviceArea" class="advice-card">
-        <div class="advice-title">🎒 推奨装備 & 対策</div>
-        <div id="gearList"></div>
+        <div class="advice-header">🎒 推奨装備 & 現場対策</div>
+        <div id="gearList" class="gear-list"></div>
     </div>
 
     <div id="nearbyArea" class="nearby-card">
-        <div style="font-weight:bold; margin-bottom:10px;">📍 周辺の状況</div>
+        <div class="nearby-title">📍 周辺エリアの安全スコア</div>
         <div id="nearbyList"></div>
     </div>
 </div>
@@ -92,8 +109,14 @@
         const ctx = document.getElementById('gaugeChart').getContext('2d');
         myChart = new Chart(ctx, {
             type: 'doughnut',
-            data: { datasets: [{ data: [1, 1, 1], backgroundColor: ['#1e293b','#1e293b','#1e293b'], borderWidth: 0, circumference: 180, rotation: 270 }] },
-            options: { cutout: '85%', plugins: { legend: { display: false } } }
+            data: {
+                datasets: [{
+                    data: [0, 100],
+                    backgroundColor: ['#1e293b', '#1e293b'],
+                    borderWidth: 0, circumference: 180, rotation: 270, cutout: '82%'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
 
@@ -112,35 +135,48 @@
             const res = await fetch(`${gasUrl}?place=${encodeURIComponent(loc)}`);
             const data = await res.json();
             
-            // UI反映
+            // 値のセット
             document.getElementById('scoreVal').innerText = data.score;
             document.getElementById('locName').innerText = data.locationName;
+            document.getElementById('statWind').innerText = data.windSpeed + " m/s";
+            document.getElementById('statRain').innerText = data.rain + " mm";
+            document.getElementById('statAlert').innerText = data.snsReports > 0 ? "⚠️" + data.snsReports : "0";
+            
             document.getElementById('tNow').innerText = data.windSpeed + "m";
             document.getElementById('tNight').innerText = data.forecast.night + "m";
             document.getElementById('tNext').innerText = data.forecast.tomorrow + "m";
 
-            // アドバイス表示
-            const gearList = document.getElementById('gearList');
-            gearList.innerHTML = data.gearAdvice.map(a => `<div class="gear-item">⚠️ ${a}</div>`).join('');
+            // アドバイス
+            const gearArea = document.getElementById('gearList');
+            gearArea.innerHTML = data.gearAdvice.map(a => `<div class="gear-item">${a}</div>`).join('');
             document.getElementById('adviceArea').style.display = 'block';
 
-            // 周辺比較
-            const nearbyList = document.getElementById('nearbyList');
-            nearbyList.innerHTML = data.nearby.map(n => `<div class="nearby-item"><span>${n.name}</span><b>Score: ${n.score}</b></div>`).join('');
+            // 周辺
+            const nearbyArea = document.getElementById('nearbyList');
+            nearbyArea.innerHTML = data.nearby.map(n => `<div class="nearby-row"><span>${n.name}</span><b>${n.score}</b></div>`).join('');
             document.getElementById('nearbyArea').style.display = 'block';
 
             updateTheme(data.score);
-        } catch (e) { alert("データ取得に失敗しました。"); }
+        } catch (e) { alert("取得エラー"); }
         document.getElementById('loader').style.display = 'none';
     }
 
     function updateTheme(score) {
         const body = document.body;
         const colors = myChart.data.datasets[0].backgroundColor;
-        colors.fill('#1e293b');
-        if (score >= 70) { body.style.background = "#450a0a"; colors[2] = "#ef4444"; }
-        else if (score >= 40) { body.style.background = "#1e293b"; colors[1] = "#f59e0b"; }
-        else { body.style.background = "#064e3b"; colors[0] = "#10b981"; }
+        
+        myChart.data.datasets[0].data = [score, 100 - score];
+        
+        if (score >= 70) {
+            body.style.background = "#450a0a";
+            colors[0] = "#ef4444";
+        } else if (score >= 40) {
+            body.style.background = "#1e293b";
+            colors[0] = "#f59e0b";
+        } else {
+            body.style.background = "#064e3b";
+            colors[0] = "#10b981";
+        }
         myChart.update();
     }
 
