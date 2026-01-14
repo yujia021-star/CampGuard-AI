@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampGuard Expert - Score Logic</title>
+    <title>CampGuard Expert v5.0</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
@@ -11,31 +11,38 @@
             --accent: #38bdf8; --danger: #ef4444; --warning: #f59e0b; --success: #10b981;
             --text: #f1f5f9;
         }
-        body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--bg); color: var(--text); transition: background 1s ease; min-height: 100vh; }
+        body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--bg); color: var(--text); transition: background 1.5s ease; min-height: 100vh; }
         .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
         
+        /* 検索周り */
         .search-row { display: flex; gap: 8px; margin: 15px 0; }
         input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #334155; background: var(--card); color: white; outline: none; }
         .btn-gps { background: #475569; padding: 10px; border-radius: 12px; border: none; cursor: pointer; font-size: 1.2rem; }
         .btn-diag { background: var(--accent); color: #0f172a; font-weight: 800; border: none; border-radius: 12px; padding: 0 20px; cursor: pointer; }
         
+        /* メインカード */
         .main-card { background: var(--card); border-radius: 28px; padding: 25px 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; margin-bottom: 15px; }
         .chart-box { height: 160px; width: 100%; position: relative; }
         .score-display { position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%); width: 100%; }
         .score-num { font-size: 3.5rem; font-weight: 900; line-height: 1; }
         .loc-tag { font-size: 0.85rem; color: var(--accent); margin-top: 8px; font-weight: bold; }
 
+        /* 行動目安ガイド */
+        .guide-box { margin-top: 20px; padding: 15px; border-radius: 16px; background: rgba(255,255,255,0.05); text-align: left; font-size: 0.9rem; line-height: 1.5; display: none; }
+        .guide-title { font-size: 0.7rem; color: #94a3b8; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; }
+
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
         .stat-label { font-size: 0.65rem; color: #94a3b8; font-weight: bold; display: block; }
         .stat-val { font-size: 0.9rem; font-weight: bold; }
 
-        /* スコアの根拠表示 */
-        .reason-box { margin-top: 15px; text-align: left; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; font-size: 0.75rem; color: #cbd5e1; display: none; border: 1px solid rgba(255,255,255,0.05); }
+        .reason-box { margin-top: 15px; text-align: left; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; font-size: 0.75rem; color: #cbd5e1; display: none; }
 
+        /* 3日間予報 */
         .timeline { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .time-box { background: var(--card); padding: 12px; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
         .weather-icon { font-size: 1.2rem; margin: 5px 0; display: block; }
 
+        /* チェックリスト */
         .checklist-card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
         .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
 
@@ -44,7 +51,7 @@
 </head>
 <body>
 
-<div id="loader" class="loading">環境とスコアを分析中...</div>
+<div id="loader" class="loading">現場状況を分析中...</div>
 
 <div class="container">
     <div class="header"><h2 style="margin:0; font-weight:900;">CampGuard <span style="color:var(--accent)">Expert</span></h2></div>
@@ -60,16 +67,23 @@
             <canvas id="gaugeChart"></canvas>
             <div class="score-display">
                 <div id="scoreVal" class="score-num">--</div>
-                <div id="locName" class="loc-tag">準備完了</div>
+                <div id="locName" class="loc-tag">READY</div>
             </div>
         </div>
+
+        <div id="guideArea" class="guide-box">
+            <div class="guide-title">AI行動アドバイス</div>
+            <div id="actionGuideText" style="white-space: pre-wrap; font-weight: bold;"></div>
+        </div>
+
         <div class="stats-grid">
             <div class="stat-item"><span class="stat-label">風速</span><span id="statWind" class="stat-val">--</span></div>
             <div class="stat-item"><span class="stat-label">降水</span><span id="statRain" class="stat-val">--</span></div>
             <div class="stat-item"><span class="stat-label">警告</span><span id="statAlert" class="stat-val">--</span></div>
         </div>
+
         <div id="reasonArea" class="reason-box">
-            <div style="font-weight:bold; color:var(--accent); margin-bottom:5px;">🔍 スコア判定の根拠</div>
+            <div style="font-weight:bold; color:var(--accent); margin-bottom:5px;">🔍 判定の根拠</div>
             <div id="reasonList" style="line-height:1.6;"></div>
         </div>
     </div>
@@ -120,77 +134,10 @@
             document.getElementById('scoreVal').innerText = data.score;
             document.getElementById('locName').innerText = data.locationName;
             document.getElementById('statWind').innerText = data.windSpeed + "m";
-            document.getElementById('statRain').innerText = data.rain + "mm";
+            document.getElementById('statRain').innerText = (data.rain || 0) + "mm";
             document.getElementById('statAlert').innerText = data.snsReports > 0 ? "⚠️" + data.snsReports : "なし";
 
-            // 根拠の表示
-            const reasonArea = document.getElementById('reasonArea');
-            const reasonList = document.getElementById('reasonList');
-            if (data.reasons && data.reasons.length > 0) {
-                reasonList.innerHTML = data.reasons.map(r => `・ ${r}`).join('<br>');
-                reasonArea.style.display = 'block';
-            } else {
-                reasonList.innerHTML = "・ 特筆すべきリスクなし (0点)";
-                reasonArea.style.display = 'block';
-            }
-
-            // 予報反映
-            document.getElementById('iconNow').innerText = getWeatherEmoji(data.forecast.nowDesc);
-            document.getElementById('windNow').innerText = data.windSpeed + "m";
-            document.getElementById('iconNight').innerText = getWeatherEmoji(data.forecast.nightDesc);
-            document.getElementById('windNight').innerText = data.forecast.night + "m";
-            document.getElementById('iconNext').innerText = getWeatherEmoji(data.forecast.tomorrowDesc);
-            document.getElementById('windNext').innerText = data.forecast.tomorrow + "m";
-
-            // AIリスト
-            document.getElementById('aiGearList').innerHTML = data.gearAdvice.map(a => `<div class="check-item" style="color:var(--warning)"><input type="checkbox"><span>${a}</span></div>`).join('');
-            document.getElementById('aiAdviceArea').style.display = 'block';
-
-            updateTheme(data.score);
-        } catch (e) { alert("診断失敗"); }
-        document.getElementById('loader').style.display = 'none';
-    }
-
-    function getWeatherEmoji(desc) {
-        if (desc.includes("晴")) return "☀️";
-        if (desc.includes("曇")) return "☁️";
-        if (desc.includes("雨")) return "☔";
-        return "⛅";
-    }
-
-    function updateTheme(score) {
-        myChart.data.datasets[0].data = [score, 100 - score];
-        const color = score >= 70 ? "#ef4444" : (score >= 40 ? "#f59e0b" : "#10b981");
-        myChart.data.datasets[0].backgroundColor[0] = color;
-        document.body.style.background = score >= 70 ? "#450a0a" : (score >= 40 ? "#0f172a" : "#064e3b");
-        myChart.update();
-    }
-
-    // --- マイギア管理 ---
-    function addMyGear() {
-        const input = document.getElementById('newGearInput');
-        if (!input.value) return;
-        let gears = JSON.parse(localStorage.getItem('myGears') || '[]');
-        gears.push({ name: input.value, checked: false });
-        localStorage.setItem('myGears', JSON.stringify(gears));
-        input.value = ''; renderMyGear();
-    }
-    function renderMyGear() {
-        const list = document.getElementById('myGearList');
-        let gears = JSON.parse(localStorage.getItem('myGears') || '[]');
-        list.innerHTML = gears.map((g, i) => `<div class="check-item"><input type="checkbox" ${g.checked ? 'checked' : ''} onchange="toggleMyGear(${i})"><span>${g.name}</span></div>`).join('');
-    }
-    function toggleMyGear(index) {
-        let gears = JSON.parse(localStorage.getItem('myGears') || '[]');
-        gears[index].checked = !gears[index].checked;
-        localStorage.setItem('myGears', JSON.stringify(gears));
-    }
-    async function useGPS() {
-        navigator.geolocation.getCurrentPosition(pos => {
-            document.getElementById('locInput').value = `${pos.coords.latitude},${pos.coords.longitude}`;
-            diagnose();
-        });
-    }
-</script>
-</body>
-</html>
+            // 行動ガイドの反映
+            const guideArea = document.getElementById('guideArea');
+            const guideText = document.getElementById('actionGuideText');
+            guideText.innerText =
