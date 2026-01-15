@@ -8,28 +8,30 @@ async function diagnose() {
         document.getElementById('resultArea').style.display = 'block';
         document.getElementById('resLoc').innerText = data.locationName;
         document.getElementById('resScore').innerText = data.score;
-        document.getElementById('resReason').innerText = `(${data.scoreReason})`; // スコア解説を表示
+        // スコアの理由を表示
+        document.getElementById('resReason').innerText = `(${data.scoreReason})`;
         updateGauge(data.score);
 
         let html = "";
         
-        // 1. 【最優先】最新のニュース・重大リスク (赤枠)
+        // 1. 【最優先】重大リスク（赤枠）
         if (data.criticalAlerts && data.criticalAlerts.length > 0) {
             html += `<div style="border: 2px solid #ff4444; background: rgba(255,0,0,0.1); padding: 15px; border-radius: 15px; margin-bottom: 20px;">
                         <h4 style="color:#ff4444; margin:0 0 10px 0; font-size:0.9rem;">⚠️ 直近のリスク情報</h4>`;
             data.criticalAlerts.forEach(a => {
                 html += `<div style="font-size:0.8rem; margin-bottom:8px; color:white;">
-                            <b>[${a.category}]</b> ${a.content} ${a.severity}
+                            <span style="background:#ff4444; padding:2px 5px; border-radius:4px; font-size:0.7rem;">${a.category}</span> 
+                            ${a.content} ${a.severity}
                          </div>`;
             });
             html += `</div>`;
         }
 
-        // 2. 【日記から抽出】先人の知恵 (青枠)
+        // 2. 【日記から抽出】先人の知恵（青枠）
         if (data.localInsights && data.localInsights.length > 0) {
-            html += `<div class="tag">📔 先人たちの要注意報告</div>`;
+            html += `<div class="tag">📔 先人たちの知恵と警告</div>`;
             data.localInsights.forEach(i => {
-                html += `<div class="insight-box" style="background:rgba(0,150,255,0.1); margin-bottom:10px; border:1px solid rgba(0,150,255,0.3);">
+                html += `<div class="insight-box" style="background:rgba(0,150,255,0.1); margin-bottom:10px; border-left:4px solid #0096ff;">
                             <div style="font-size:0.85rem;">「${i.content}」</div>
                          </div>`;
             });
@@ -39,11 +41,20 @@ async function diagnose() {
         html += `<div class="tag">🛡️ 推奨装備</div>
                  <div class="insight-box" style="background:rgba(255,255,255,0.05);">
                     ${data.score > 40 ? "<div>✅ 鍛造ペグ・冬用寝具を強く推奨</div>" : "<div>✅ 標準的な装備で対応可能です</div>"}
+                    <div>✅ 天候に合わせた装備準備</div>
                  </div>`;
         
         document.getElementById('insightContainer').innerHTML = html;
-        document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `<div class="t-item"><div style="font-size:0.6rem; color:var(--accent);">${t.time}</div><img src="https://openweathermap.org/img/wn/${t.icon}.png" width="30"><div>${t.temp}℃</div></div>`).join('');
         
-    } catch(e) { alert("診断エラーが発生しました"); }
+        // タイムラインの表示
+        document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `
+            <div class="t-item">
+                <div style="font-size:0.6rem; color:var(--accent);">${t.time}</div>
+                <img src="https://openweathermap.org/img/wn/${t.icon}.png" width="30">
+                <div>${t.temp}℃</div>
+            </div>
+        `).join('');
+        
+    } catch(e) { alert("診断エラーが発生しました。"); }
     document.getElementById('loader').style.display = 'none';
 }
