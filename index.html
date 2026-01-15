@@ -35,11 +35,11 @@
 </head>
 <body>
 
-<div id="loader" class="loading">解析中...</div>
+<div id="loader" class="loading">知恵を解析中...</div>
 
 <div id="loginOverlay">
     <div class="login-card" id="cardLogin">
-        <h2 style="letter-spacing: 2px;">CAMPGUARD</h2>
+        <h2>CAMPGUARD</h2>
         <input type="text" id="uid" placeholder="ユーザーID">
         <input type="password" id="pwd" placeholder="パスワード">
         <button class="btn-primary" onclick="attemptLogin()">ログイン</button>
@@ -48,12 +48,11 @@
 
 <div class="container" id="mainApp" style="display:none;">
     <div id="pageDiag" class="page active">
-        <h2 style="text-align:center; font-weight: 900;">CAMPGUARD <span style="color:var(--accent)">EXPERT</span></h2>
+        <h2 style="text-align:center;">CAMPGUARD <span style="color:var(--accent)">EXPERT</span></h2>
         <div style="display:flex; gap:8px; margin-bottom:20px;">
             <input type="text" id="loc" placeholder="キャンプ場名" value="ふもとっぱら" style="margin:0;">
             <button class="btn-primary" onclick="diagnose()" style="width:80px; padding:0;">診断</button>
         </div>
-        
         <div id="resultArea" style="display:none;">
             <div class="main-card">
                 <div id="resLoc" style="font-size:0.9rem; color:var(--accent); font-weight: bold; margin-bottom:12px;"></div>
@@ -64,10 +63,9 @@
                         <div id="resReason" class="score-reason"></div>
                     </div>
                 </div>
-                
                 <div id="insightContainer"></div>
             </div>
-            <div class="tag">🕒 HOURLY FORECAST</div>
+            <div class="tag">🕒 Hourly Forecast</div>
             <div id="resTimeline" class="timeline"></div>
         </div>
     </div>
@@ -77,14 +75,14 @@
         <div class="main-card" style="text-align:left;">
             <input type="date" id="dDate">
             <input type="text" id="dPlace" placeholder="📍 キャンプ場名">
-            <input type="text" id="dTopic" placeholder="🏷️ 教訓のタイトル">
-            <textarea id="dContent" placeholder="具体的な知恵（例：夜に騒ぐ人がいたので耳栓必須、地面が硬すぎて鍛造ペグ以外刺さらなかった、など）" style="height:150px;"></textarea>
+            <input type="text" id="dTopic" placeholder="🏷️ タイトル">
+            <textarea id="dContent" placeholder="困ったこと、騒音、地面の状態などを記録してください..."></textarea>
             <button class="btn-primary" onclick="saveDiary()">知恵を公開する</button>
         </div>
     </div>
 
     <div id="pageHistory" class="page">
-        <h2 style="text-align:center;">Activity Log</h2>
+        <h2 style="text-align:center;">My Activity Log</h2>
         <div id="historyList"></div>
     </div>
 </div>
@@ -92,7 +90,7 @@
 <div class="nav" id="mainNav" style="display:none;">
     <div class="nav-item active" onclick="switchPage('pageDiag', this)">診断</div>
     <div class="nav-item" onclick="switchPage('pageDiary', this)">日記を書く</div>
-    <div class="nav-item" onclick="loadHistory(this)">履歴</div>
+    <div class="nav-item" onclick="loadHistory(this)">自分の履歴</div>
     <div class="nav-item" onclick="logout()" style="color:#ef4444;">ログアウト</div>
 </div>
 
@@ -104,15 +102,18 @@
     function logout() { localStorage.removeItem('campGuardUser'); location.reload(); }
 
     async function attemptLogin() {
-        const uid = document.getElementById('uid').value;
-        const pwd = document.getElementById('pwd').value;
+        const uid = document.getElementById('uid').value.trim();
+        const pwd = document.getElementById('pwd').value.trim();
         if(!uid || !pwd) return;
         document.getElementById('loader').style.display = 'flex';
-        const res = await fetch(`${gasUrl}?mode=login&uid=${uid}&pwd=${pwd}`);
-        if (await res.text() === "success") {
-            localStorage.setItem('campGuardUser', uid);
-            showApp();
-        } else alert("認証失敗");
+        try {
+            const res = await fetch(`${gasUrl}?mode=login&uid=${encodeURIComponent(uid)}&pwd=${encodeURIComponent(pwd)}`);
+            const result = await res.text();
+            if (result === "success") {
+                localStorage.setItem('campGuardUser', uid);
+                showApp();
+            } else { alert("認証に失敗しました"); }
+        } catch(e) { alert("通信エラー"); }
         document.getElementById('loader').style.display = 'none';
     }
 
@@ -124,7 +125,6 @@
             const loc = document.getElementById('loc').value;
             const res = await fetch(`${gasUrl}?mode=diagnose&place=${encodeURIComponent(loc)}`);
             const data = await res.json();
-            
             document.getElementById('resultArea').style.display = 'block';
             document.getElementById('resLoc').innerText = data.locationName;
             document.getElementById('resScore').innerText = data.score;
@@ -139,8 +139,8 @@
                     const cssClass = i.type === 'local' ? 'local-info' : 'general-info';
                     html += `<div class="insight-box ${cssClass}">
                                 <div style="font-size:0.7rem; font-weight:bold; opacity:0.8; margin-bottom:4px;">${i.label}</div>
-                                <div style="font-weight:bold; line-height:1.4;">${i.content}</div>
-                                <div style="font-size:0.6rem; margin-top:6px; opacity:0.5; text-align:right;">by ${i.originalPlace}</div>
+                                <div style="font-weight:bold;">${i.content}</div>
+                                <div style="font-size:0.6rem; margin-top:6px; opacity:0.5; text-align:right;">元ネタ: ${i.originalPlace}</div>
                              </div>`;
                 });
             }
@@ -150,8 +150,7 @@
             
             document.getElementById('insightContainer').innerHTML = html;
             document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `<div class="t-item"><div style="font-size:0.6rem; color:var(--accent);">${t.time}</div><img src="https://openweathermap.org/img/wn/${t.icon}.png" width="30"><div>${t.temp}℃</div></div>`).join('');
-            
-        } catch(e) { alert("エラーが発生しました"); }
+        } catch(e) { alert("エラー"); }
         document.getElementById('loader').style.display = 'none';
     }
 
@@ -180,7 +179,7 @@
         const uid = localStorage.getItem('campGuardUser');
         const res = await fetch(`${gasUrl}?mode=getDiaries&uid=${encodeURIComponent(uid)}`);
         const data = await res.json();
-        list.innerHTML = data.length ? data.map(d => `<div class="main-card" style="text-align:left;"><div style="color:var(--accent); font-size:0.75rem;">🗓️ ${d.campDate} @${d.place}</div><div style="font-weight:bold; margin:8px 0;">${d.topic}</div><div style="opacity:0.8; font-size:0.9rem;">${d.content}</div></div>`).join('') : "履歴はありません";
+        list.innerHTML = data.length ? data.map(d => `<div class="main-card" style="text-align:left;"><div style="color:var(--accent); font-size:0.75rem;">🗓️ ${d.campDate} @${d.place}</div><div style="font-weight:bold; margin:8px 0;">${d.topic}</div><div style="opacity:0.8; font-size:0.9rem;">${d.content}</div></div>`).join('') : "日記はありません";
     }
 
     function switchPage(id, el) {
