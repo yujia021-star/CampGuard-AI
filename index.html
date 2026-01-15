@@ -11,6 +11,16 @@
         .container { max-width: 480px; margin: 0 auto; padding: 15px; }
         .page { display: none; animation: fadeIn 0.3s ease; } .active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* 右上固定ログアウトボタン */
+        .logout-top { 
+            position: fixed; top: 15px; right: 15px; z-index: 2000; 
+            background: rgba(239, 68, 68, 0.15); color: #ef4444; 
+            border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; 
+            padding: 6px 12px; font-size: 0.7rem; font-weight: bold; cursor: pointer;
+            backdrop-filter: blur(4px); display: none;
+        }
+
         #loginOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .login-card { background: var(--card); width: 100%; max-width: 350px; padding: 30px; border-radius: 28px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
         .main-card { background: var(--card); border-radius: 28px; padding: 20px; text-align: center; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.08); }
@@ -33,6 +43,8 @@
 <body>
 
 <div id="loader" class="loading">解析中...</div>
+
+<div id="logoutBtn" class="logout-top" onclick="logout()">LOGOUT</div>
 
 <div id="loginOverlay">
     <div class="login-card">
@@ -114,7 +126,12 @@
     const gasUrl = "https://script.google.com/macros/s/AKfycbyqDTFt6HyyWfDLJJTkB2hQfSik9oJJfmIJBsRZ4U_kacbxYjlE2lB759s7scGMhaHx/exec";
     let myChart;
 
-    function showApp() { document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('mainApp').style.display = 'block'; document.getElementById('mainNav').style.display = 'flex'; }
+    function showApp() { 
+        document.getElementById('loginOverlay').style.display = 'none'; 
+        document.getElementById('mainApp').style.display = 'block'; 
+        document.getElementById('mainNav').style.display = 'flex';
+        document.getElementById('logoutBtn').style.display = 'block'; // ログアウト表示
+    }
     function logout() { localStorage.removeItem('campGuardUser'); location.reload(); }
 
     async function attemptLogin() {
