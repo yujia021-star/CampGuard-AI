@@ -95,37 +95,39 @@ async function diagnose() {
             document.getElementById('resultArea').style.display = 'block';
             document.getElementById('resLoc').innerText = data.locationName;
             document.getElementById('resScore').innerText = data.score;
-            document.getElementById('resWind').innerText = data.maxWind + "m/s";
-            document.getElementById('resMaxT').innerText = data.maxTemp + "℃";
-            document.getElementById('resMinT').innerText = data.minTemp + "℃";
             updateGauge(data.score);
 
-            // --- ここからが「復活」部分 ---
-            
-            // 1. 警告メッセージの表示
-            let alertHtml = `<div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; margin:15px 0;">
-                                ${data.alerts}
-                             </div>`;
-            
-            // 2. 推奨装備チェックリストの表示
-            let checkHtml = `<div style="text-align:left; margin-top:20px;">
-                                <div class="tag">🛡️ 推奨装備チェック</div>
-                                <div class="bubble">
-                                    ${data.checkList.map(item => `<div>✅ ${item}</div>`).join('')}
-                                </div>
-                             </div>`;
+            // 警告タイトルとチェックリストの構築（レイアウト再現）
+            let html = `
+                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; margin:15px 0; font-size:0.9rem;">
+                    ${data.alertTitle}
+                </div>
+                <div style="text-align:left; margin-top:20px;">
+                    <div class="tag">🛡️ 推奨装備チェック</div>
+                    <div class="bubble" style="line-height:1.8;">
+                        ${data.checkList.map(item => `<div style="display:flex; align-items:center;"><span style="color:#10b981; margin-right:8px;">✅</span> ${item}</div>`).join('')}
+                    </div>
+                </div>
+            `;
 
-            // 3. 過去の知恵（日記）の表示
-            let insightHtml = "";
+            // 気象数値の詳細（中央付近）
+            html += `
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; font-size:0.75rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px; margin-top:15px;">
+                    <div>最大風速<br><b style="font-size:1rem;">${data.maxWind}m/s</b></div>
+                    <div>最高気温<br><b style="font-size:1rem;">${data.maxTemp}℃</b></div>
+                    <div>最低気温<br><b style="font-size:1rem;">${data.minTemp}℃</b></div>
+                </div>
+            `;
+
+            // 知恵（日記）があれば追加
             if(data.localInsights?.length > 0) {
-                insightHtml += `<div class="tag">📍 この場所の記録</div>`;
-                data.localInsights.forEach(i => insightHtml += `<div class="bubble"><b>${i.topic}</b><br>${i.content}</div>`);
+                html += `<div class="tag" style="text-align:left; margin-top:20px;">📍 この場所の記録</div>`;
+                data.localInsights.forEach(i => html += `<div class="bubble" style="text-align:left;"><b>${i.topic}</b><br>${i.content}</div>`);
             }
 
-            // 全部まとめて表示エリアに流し込む
-            document.getElementById('insightContainer').innerHTML = alertHtml + checkHtml + insightHtml;
+            document.getElementById('insightContainer').innerHTML = html;
 
-            // タイムライン
+            // タイムライン（時間順）
             document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `
                 <div class="t-item">
                     <div style="font-size:0.6rem; color:#38bdf8;">${t.time}</div>
@@ -133,7 +135,7 @@ async function diagnose() {
                     <div>${t.temp}℃</div>
                 </div>`).join('');
 
-        } catch(e) { alert("エラー: " + e.message); }
+        } catch(e) { alert("通信エラー: デプロイ設定を確認してください"); }
         document.getElementById('loader').style.display = 'none';
     }
     function updateGauge(score) {
