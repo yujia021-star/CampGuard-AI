@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CampGuard Expert</title>
+    <title>CampGuard Expert Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root { --bg: #0b0f1a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; --warning: #f59e0b; }
@@ -11,34 +11,59 @@
         .container { max-width: 480px; margin: 0 auto; padding: 15px; }
         .page { display: none; animation: fadeIn 0.3s ease; } .active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 🔒 ログイン・リセット画面 */
+        #loginOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { background: var(--card); width: 100%; max-width: 350px; padding: 30px; border-radius: 28px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        
         .main-card { background: var(--card); border-radius: 28px; padding: 20px; text-align: center; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.08); }
         .gauge-outer { position: relative; height: 160px; }
         .score-display { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; }
         .score-num { font-size: 5rem; font-weight: 900; line-height: 1; }
-        .search-box { display: flex; gap: 8px; margin-bottom: 20px; }
-        input, textarea { flex: 1; padding: 14px; border-radius: 14px; border: 1px solid #334155; background: #0f172a; color: white; width: 100%; box-sizing: border-box; font-size: 16px; outline: none; }
-        .btn-diag { background: var(--accent); color: #0f172a; border: none; border-radius: 14px; padding: 0 24px; font-weight: bold; cursor: pointer; }
+        input, textarea { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; outline: none; box-sizing: border-box; font-size: 16px; }
+        .btn-primary { background: var(--accent); color: #0f172a; border: none; border-radius: 14px; padding: 14px; font-weight: bold; width: 100%; cursor: pointer; }
         .tag { font-size: 0.75rem; color: var(--accent); font-weight: bold; text-align: left; margin-top: 20px; margin-bottom: 8px; text-transform: uppercase; }
         .bubble { background: rgba(255,255,255,0.04); padding: 16px; border-radius: 20px; font-size: 0.95rem; margin-bottom: 12px; border-left: 4px solid var(--accent); text-align: left; }
         .timeline { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
         .t-item { background: #334155; padding: 10px; border-radius: 12px; min-width: 65px; text-align: center; flex-shrink: 0; }
-        .nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(30, 41, 59, 0.95); display: flex; justify-content: space-around; padding: 15px 0 25px 0; border-top: 1px solid rgba(255,255,255,0.1); }
-        .nav-item { cursor: pointer; font-size: 0.7rem; opacity: 0.4; text-align: center; color: white; }
+        .nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(30, 41, 59, 0.95); display: flex; justify-content: space-around; padding: 15px 0 25px 0; border-top: 1px solid rgba(255,255,255,0.1); z-index: 1000; }
+        .nav-item { cursor: pointer; font-size: 0.7rem; opacity: 0.4; color: white; text-align: center; }
         .nav-item.active { opacity: 1; color: var(--accent); }
-        .loading { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .loading { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 4000; }
         .detail-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; font-size: 0.65rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-<div id="loader" class="loading">解析中...</div>
+<div id="loader" class="loading">通信中...</div>
 
-<div class="container">
+<div id="loginOverlay">
+    <div class="login-card" id="cardLogin">
+        <h2 style="margin-bottom:20px;">CAMPGUARD<br><span style="color:var(--accent); font-size:0.8rem;">AUTHENTICATION</span></h2>
+        <input type="text" id="uid" placeholder="ユーザーID">
+        <input type="password" id="pwd" placeholder="パスワード">
+        <label style="font-size:0.8rem; display:block; margin-bottom:20px; text-align:left; opacity:0.7;">
+            <input type="checkbox" id="keepLogin" style="width:auto; margin-right:8px;"> ログインを維持
+        </label>
+        <button class="btn-primary" onclick="attemptLogin()">ログイン</button>
+        <p onclick="toggleReset(true)" style="font-size:0.7rem; margin-top:15px; cursor:pointer; color:var(--accent);">パスワードを忘れた場合</p>
+    </div>
+    <div class="login-card" id="cardReset" style="display:none;">
+        <h2 style="margin-bottom:20px;">PASSWORD<br><span style="color:var(--warning); font-size:0.8rem;">RESET SERVICE</span></h2>
+        <input type="text" id="r_uid" placeholder="ユーザーID">
+        <input type="text" id="r_ans" placeholder="秘密の回答（例：好きな食べ物）">
+        <input type="password" id="r_newPwd" placeholder="新しいパスワード">
+        <button class="btn-primary" style="background:var(--warning);" onclick="attemptReset()">パスワードを更新</button>
+        <p onclick="toggleReset(false)" style="font-size:0.7rem; margin-top:15px; cursor:pointer;">ログインに戻る</p>
+    </div>
+</div>
+
+<div class="container" id="mainApp" style="display:none;">
     <div id="pageDiag" class="page active">
         <h2 style="text-align:center; letter-spacing:1px;">CAMPGUARD <span style="color:var(--accent)">EXPERT</span></h2>
-        <div class="search-box">
-            <input type="text" id="loc" placeholder="キャンプ場名" value="">
-            <button class="btn-diag" onclick="diagnose()">診断</button>
+        <div style="display:flex; gap:8px; margin-bottom:20px;">
+            <input type="text" id="loc" placeholder="キャンプ場名" value="ふもとっぱら" style="margin:0;">
+            <button class="btn-primary" onclick="diagnose()" style="width:80px; padding:0;">診断</button>
         </div>
         <div id="resultArea" style="display:none;">
             <div class="main-card">
@@ -52,32 +77,80 @@
     </div>
 
     <div id="pageDiary" class="page">
-        <h2 style="text-align:center;">Camp Diary</h2>
+        <h2 style="text-align:center;">Share Wisdom</h2>
         <div class="main-card" style="text-align:left;">
             <div class="tag" style="margin-top:0;">📅 実施日</div>
             <input type="date" id="dDate" style="margin-bottom:15px;">
-            <input type="text" id="dPlace" placeholder="📍 キャンプ場（例：小倉橋）" style="margin-bottom:12px;">
-            <input type="text" id="dTopic" placeholder="🏷️ タイトル" style="margin-bottom:12px;">
-            <textarea id="dContent" placeholder="✍️ どんなキャンプでしたか？（例：夜に騒ぐ人がいて寝れなかったから耳栓が必要...など）" style="height:150px;"></textarea>
-            <button onclick="saveDiary()" style="width:100%; padding:16px; margin-top:20px; background:var(--accent); border:none; border-radius:14px; font-weight:bold; color:#0f172a;">日記を記録する</button>
+            <input type="text" id="dPlace" placeholder="📍 キャンプ場名" style="margin-bottom:12px;">
+            <input type="text" id="dTopic" placeholder="🏷️ 教訓のタイトル" style="margin-bottom:12px;">
+            <textarea id="dContent" placeholder="✍️ 具体的な知恵（例：夜に騒ぐ人がいたので耳栓必須、など）" style="height:150px;"></textarea>
+            <button class="btn-primary" onclick="saveDiary()">知恵を公開する</button>
         </div>
     </div>
 
     <div id="pageHistory" class="page">
-        <h2 style="text-align:center;">History</h2>
+        <h2 style="text-align:center;">Activity Log</h2>
         <div id="historyList"></div>
     </div>
 </div>
 
-<div class="nav">
+<div class="nav" id="mainNav" style="display:none;">
     <div class="nav-item active" onclick="switchPage('pageDiag', this)">診断</div>
     <div class="nav-item" onclick="switchPage('pageDiary', this)">日記</div>
     <div class="nav-item" onclick="loadHistory(this)">履歴</div>
+    <div class="nav-item" onclick="logout()" style="color:#ef4444;">ログアウト</div>
 </div>
 
 <script>
-    const gasUrl = "https://script.google.com/macros/s/AKfycbyqDTFt6HyyWfDLJJTkB2hQfSik9oJJfmIJBsRZ4U_kacbxYjlE2lB759s7scGMhaHx/exec"; 
+    const gasUrl = "https://script.google.com/macros/s/AKfycbyqDTFt6HyyWfDLJJTkB2hQfSik9oJJfmIJBsRZ4U_kacbxYjlE2lB759s7scGMhaHx/exec";
     let myChart;
+
+    window.onload = () => {
+        const savedUser = localStorage.getItem('campGuardUser');
+        if (savedUser) showApp();
+    };
+
+    function showApp() {
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        document.getElementById('mainNav').style.display = 'flex';
+    }
+
+    function toggleReset(isReset) {
+        document.getElementById('cardLogin').style.display = isReset ? 'none' : 'block';
+        document.getElementById('cardReset').style.display = isReset ? 'block' : 'none';
+    }
+
+    async function attemptLogin() {
+        const uid = document.getElementById('uid').value;
+        const pwd = document.getElementById('pwd').value;
+        const keep = document.getElementById('keepLogin').checked;
+        if(!uid || !pwd) return alert("入力してください");
+        document.getElementById('loader').style.display = 'flex';
+        const res = await fetch(`${gasUrl}?mode=login&uid=${uid}&pwd=${pwd}`);
+        if (await res.text() === "success") {
+            if (keep) localStorage.setItem('campGuardUser', uid);
+            sessionStorage.setItem('activeUser', uid);
+            showApp();
+        } else alert("認証失敗");
+        document.getElementById('loader').style.display = 'none';
+    }
+
+    async function attemptReset() {
+        const uid = document.getElementById('r_uid').value;
+        const ans = document.getElementById('r_ans').value;
+        const newPwd = document.getElementById('r_newPwd').value;
+        if(!uid || !ans || !newPwd) return alert("全て入力してください");
+        document.getElementById('loader').style.display = 'flex';
+        const res = await fetch(`${gasUrl}?mode=reset&uid=${uid}&ans=${ans}&newPwd=${newPwd}`);
+        if (await res.text() === "success") {
+            alert("更新完了。ログインしてください。");
+            toggleReset(false);
+        } else alert("IDまたは回答が違います");
+        document.getElementById('loader').style.display = 'none';
+    }
+
+    function logout() { localStorage.removeItem('campGuardUser'); location.reload(); }
 
     function switchPage(id, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -95,62 +168,43 @@
             document.getElementById('resLoc').innerText = data.locationName;
             document.getElementById('resScore').innerText = data.score;
             updateGauge(data.score);
-
-            let html = `
-                <div style="font-size:0.75rem; opacity:0.6; margin-bottom:10px;">${data.scoreReason}</div>
-                <div style="background:rgba(56, 189, 248, 0.1); padding:14px; border-radius:16px; margin:12px 0; font-size:0.95rem; font-weight:bold; border:1px solid rgba(56,189,248,0.3);">${data.alertTitle}</div>
-            `;
-
-            // 【抽出された知恵の表示（シンプル版）】
+            let html = `<div style="font-size:0.75rem; opacity:0.6; margin-bottom:10px;">${data.scoreReason}</div>
+                        <div style="background:rgba(56, 189, 248, 0.1); padding:14px; border-radius:16px; margin:12px 0; font-size:0.95rem; font-weight:bold; border:1px solid rgba(56,189,248,0.3); color:white;">${data.alertTitle}</div>`;
             if(data.localInsights && data.localInsights.length > 0) {
-                html += `<div class="tag" style="margin-top:28px; color:var(--warning);">💡 先人からのローカル知</div>`;
+                html += `<div class="tag" style="margin-top:28px; color:var(--warning);">🔑 現場ナレッジ（教訓）</div>`;
                 data.localInsights.forEach(i => {
-                    html += `
-                        <div class="bubble" style="border-left-color:var(--warning); background:rgba(245,158,11,0.06); margin-bottom:10px;">
-                            <div style="font-size:1rem; font-weight:bold; color:#fff; line-height:1.4;">「${i.content}」</div>
-                            <div style="font-size:0.7rem; color:var(--warning); margin-top:5px; opacity:0.8;">📍 ${i.topic} (${i.date})</div>
-                        </div>`;
+                    html += `<div class="bubble" style="border-left-color:var(--warning); background:rgba(245,158,11,0.06); margin-bottom:10px;">
+                                <div style="font-size:0.75rem; color:var(--warning); margin-bottom:5px;">📌 ${i.topic} <span style="float:right;">${i.date}</span></div>
+                                <div style="font-size:1rem; font-weight:bold; color:#fff;">「${i.content}」</div>
+                             </div>`;
                 });
             }
-
-            html += `
-                <div style="text-align:left; margin-top:20px;">
-                    <div class="tag">🛡️ 予報に基づく装備</div>
-                    <div class="bubble">${data.checkList.map(item => `<div>✅ ${item}</div>`).join('')}</div>
-                </div>
-                <div class="detail-grid">
-                    <div>最大風速<br><b>${data.maxWind}</b>m/s</div><div>最高気温<br><b>${data.maxTemp}</b>℃</div><div>最低気温<br><b>${data.minTemp}</b>℃</div><div>最大雨量<br><b>${data.maxRain}</b>mm</div>
-                </div>
-            `;
-
+            html += `<div class="tag">🛡️ 予報に基づく装備</div><div class="bubble">${data.checkList.map(item => `<div>✅ ${item}</div>`).join('')}</div>
+                     <div class="detail-grid"><div>風速<br><b>${data.maxWind}</b>m/s</div><div>最高<br><b>${data.maxTemp}</b>℃</div><div>最低<br><b>${data.minTemp}</b>℃</div><div>雨量<br><b>${data.maxRain}</b>mm</div></div>`;
             document.getElementById('insightContainer').innerHTML = html;
-            document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `
-                <div class="t-item"><div style="font-size:0.6rem; color:var(--accent);">${t.time}</div><img src="https://openweathermap.org/img/wn/${t.icon}.png" width="30"><div>${t.temp}℃</div></div>
-            `).join('');
-        } catch(e) { alert("読込失敗。GASの設定を確認してください。"); }
+            document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `<div class="t-item"><div style="font-size:0.6rem; color:var(--accent);">${t.time}</div><img src="https://openweathermap.org/img/wn/${t.icon}.png" width="30"><div>${t.temp}℃</div></div>`).join('');
+        } catch(e) { alert("失敗"); }
         document.getElementById('loader').style.display = 'none';
     }
 
     function updateGauge(score) {
         const ctx = document.getElementById('gaugeChart').getContext('2d');
-        const color = score >= 70 ? '#ef4444' : (score >= 40 ? '#f59e0b' : '#10b981');
+        const color = score >= 75 ? '#ef4444' : (score >= 45 ? '#f59e0b' : '#10b981');
         if (myChart) myChart.destroy();
         myChart = new Chart(ctx, { type: 'doughnut', data: { datasets: [{ data: [score, 100 - score], backgroundColor: [color, 'rgba(255,255,255,0.05)'], borderWidth: 0, circumference: 180, rotation: 270, cutout: '90%' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
     }
 
     async function saveDiary() {
-        const date = document.getElementById('dDate').value;
-        const place = document.getElementById('dPlace').value;
-        const topic = document.getElementById('dTopic').value;
-        const content = document.getElementById('dContent').value;
-        if(!date || !place || !topic || !content) return alert("入力漏れがあります。");
+        const d = ["dDate","dPlace","dTopic","dContent"].map(id => document.getElementById(id).value);
+        const uid = localStorage.getItem('campGuardUser') || sessionStorage.getItem('activeUser');
+        if(d.some(v => !v)) return alert("未入力");
         document.getElementById('loader').style.display = 'flex';
         try {
-            await fetch(`${gasUrl}?mode=postDiary&place=${encodeURIComponent(place)}&topic=${encodeURIComponent(topic)}&content=${encodeURIComponent(content)}&campDate=${encodeURIComponent(date)}`, {mode: 'no-cors'});
-            alert("日記を保存しました。あなたの知恵が共有されます！");
+            await fetch(`${gasUrl}?mode=postDiary&place=${encodeURIComponent(d[1])}&topic=${encodeURIComponent(d[2])}&content=${encodeURIComponent(d[3])}&campDate=${encodeURIComponent(d[0])}&uid=${encodeURIComponent(uid)}`, {mode: 'no-cors'});
+            alert("保存完了！");
             document.getElementById('dTopic').value = ""; document.getElementById('dContent').value = "";
             switchPage('pageDiag', document.querySelectorAll('.nav-item')[0]);
-        } catch(e) { alert("保存に失敗しました。"); }
+        } catch(e) { alert("失敗"); }
         document.getElementById('loader').style.display = 'none';
     }
 
@@ -161,14 +215,8 @@
         try {
             const res = await fetch(`${gasUrl}?mode=getDiaries`);
             const data = await res.json();
-            list.innerHTML = data.length ? data.map(d => `
-                <div class="main-card" style="text-align:left;">
-                    <div style="color:var(--accent); font-size:0.75rem;">📅 ${d.campDate} @${d.place}</div>
-                    <div style="font-weight:bold; margin:8px 0; font-size:1.1rem;">${d.topic}</div>
-                    <div style="opacity:0.8; font-size:0.9rem; white-space:pre-wrap;">${d.content}</div>
-                </div>
-            `).join('') : "履歴なし";
-        } catch(e) { alert("履歴の取得に失敗しました。"); }
+            list.innerHTML = data.length ? data.map(d => `<div class="main-card" style="text-align:left;"><div style="color:var(--accent); font-size:0.75rem;">🗓️ ${d.campDate} @${d.place} by ${d.author}</div><div style="font-weight:bold; margin:8px 0;">${d.topic}</div><div style="opacity:0.8; font-size:0.9rem; white-space:pre-wrap;">${d.content}</div></div>`).join('') : "なし";
+        } catch(e) { alert("失敗"); }
     }
 </script>
 </body>
