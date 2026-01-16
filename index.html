@@ -228,7 +228,7 @@
                 const color = res.score >= 70 ? '#ef4444' : (res.score >= 40 ? '#f59e0b' : '#10b981');
                 // クリックでGoogleマップに飛ぶように onclick を追加
                 listDiv.innerHTML += `
-                    <div onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(res.name)}', '_blank')" 
+                    <div onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(res.name+ ' キャンプ場')}', '_blank')" 
                          style="background:rgba(255,255,255,0.05); border-left:8px solid ${color}; padding:15px; border-radius:18px; margin-bottom:15px; color:white; cursor:pointer;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="font-weight:bold;">📍 ${res.name}</span>
