@@ -132,6 +132,9 @@
 </div>
 
 <script>
+    window.onload = function() {
+        if (localStorage.getItem('campGuardUser')) showApp();
+    };
     const gasUrl = "https://script.google.com/macros/s/AKfycbxTXEtRztOBX5a0F3UgFbwCBtHglu-Ynqz3qeGUoEK8YTFyX4SlGiwbeMegloMWhMoX/exec";
     let myChart;
 const regionMap = {
