@@ -83,16 +83,25 @@
         <div class="main-card">
             <input type="datetime-local" id="hDate">
             <select id="hArea">
-                <option value="北海道">北海道</option>
-                <option value="東北">東北</option>
-                <option value="北関東">北関東</option>
-                <option value="埼玉・東京・神奈川">埼玉・東京・神奈川</option>
-                <option value="甲信越">甲信越</option>
-                <option value="東海・北陸">東海・北陸</option>
-                <option value="近畿">近畿</option>
-                <option value="中国・四国">中国・四国</option>
-                <option value="九州・沖縄">九州・沖縄</option>
-            </select>
+    <option value="" disabled selected>エリア・都道府県を選択</option>
+    <optgroup label="広域スキャン">
+        <option value="北海道">北海道（全域）</option>
+        <option value="東北">東北地方</option>
+        <option value="北関東">北関東</option>
+        <option value="南関東">南関東</option>
+        <option value="甲信越">甲信越</option>
+        <option value="東海">東海</option>
+    </optgroup>
+    <optgroup label="都道府県別">
+        <option value="栃木">栃木県</option>
+        <option value="茨城">茨城県</option>
+        <option value="群馬">群馬県</option>
+        <option value="埼玉">埼玉県</option>
+        <option value="山梨">山梨県</option>
+        <option value="長野">長野県</option>
+        <option value="静岡">静岡県</option>
+    </optgroup>
+</select>
             <button class="btn-primary" onclick="loadHazardMap()">36時間リスクをスキャン</button>
         </div>
         <div id="hazardList"></div>
