@@ -187,6 +187,7 @@
             document.getElementById('resultArea').style.display = 'block';
             document.getElementById('resLoc').innerText = data.locationName;
             document.getElementById('resScore').innerText = data.score;
+            // 元のデザイン通り、理由だけを表示
             document.getElementById('resReason').innerText = `(${data.scoreReason})`;
             updateGauge(data.score);
             let html = `<div style="background:rgba(56, 189, 248, 0.1); padding:14px; border-radius:16px; margin:12px 0; font-weight:bold; border:1px solid rgba(56,189,248,0.3);">${data.alertTitle}</div>`;
@@ -196,7 +197,16 @@
             }
             html += `<div class="tag">🛡️ 推奨</div><div class="insight-box" style="background:rgba(255,255,255,0.05);">${data.checkList.map(item => `<div>✅ ${item}</div>`).join('')}</div>`;
             document.getElementById('insightContainer').innerHTML = html;
-            document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `<div class="t-item"><div>${t.time}</div><img src="https://openweathermap.org/img/wn/${t.icon}.png" width="30"><div>${t.temp}℃</div></div>`).join('');
+            
+            // 下部の気温に「💧雨」と「💨風」を元のデザインを崩さず追加
+            document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `
+                <div class="t-item">
+                    <div>${t.time}</div>
+                    <img src="https://openweathermap.org/img/wn/${t.icon}.png" width="30">
+                    <div>${t.temp}℃</div>
+                    <div style="font-size:0.6rem; color:#38bdf8;">💧${t.rain||0}</div>
+                    <div style="font-size:0.6rem; color:#f59e0b;">💨${t.wind||0}</div>
+                </div>`).join('');
         } catch(e) { alert("判定エラー"); }
         document.getElementById('loader').style.display = 'none';
     }
@@ -226,20 +236,28 @@
             listDiv.innerHTML = ''; 
             results.forEach(res => {
                 const color = res.score >= 70 ? '#ef4444' : (res.score >= 40 ? '#f59e0b' : '#10b981');
-                // クリックでGoogleマップに飛ぶように onclick を追加
                 listDiv.innerHTML += `
-                    <div onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(res.name+ ' キャンプ場')}', '_blank')" 
-                         style="background:rgba(255,255,255,0.05); border-left:8px solid ${color}; padding:15px; border-radius:18px; margin-bottom:15px; color:white; cursor:pointer;">
+                    <div style="background:rgba(255,255,255,0.05); border-left:8px solid ${color}; padding:15px; border-radius:18px; margin-bottom:15px; color:white;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="font-weight:bold;">📍 ${res.name}</span>
                             <span style="font-weight:bold; color:${color}">${res.score}点</span>
                         </div>
                         <p style="font-size:0.8rem; margin:5px 0; opacity:0.7;">💨風:${res.maxWind}m / 🌡最低:${res.minTemp}℃</p>
                         <p style="font-size:0.85rem;"><strong>理由:</strong> ${res.reason}</p>
-                        <div style="text-align:right; font-size:0.7rem; opacity:0.5;">タップで地図を表示 ↗</div>
+                        <div style="display:flex; gap:8px; margin-top:10px;">
+                            <button onclick="jumpToDiag('${res.name}')" style="flex:1; background:var(--accent); color:#0b0f1a; border:none; border-radius:10px; padding:8px; font-size:0.75rem; font-weight:bold; cursor:pointer;">詳細を解析</button>
+                            <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(res.name + ' キャンプ場')}', '_blank')" style="flex:1; background:rgba(255,255,255,0.1); color:white; border:none; border-radius:10px; padding:8px; font-size:0.75rem; cursor:pointer;">MAP</button>
+                        </div>
                     </div>`;
             });
         } catch (err) { listDiv.innerHTML = '<div style="color:red; text-align:center;">エラー</div>'; }
+    }
+
+    // 詳細ページへジャンプ用
+    function jumpToDiag(name) {
+        document.getElementById('loc').value = name;
+        switchPage('pageDiag', document.querySelectorAll('.nav-item')[0]);
+        diagnose();
     }
 
     function updateGauge(score) {
