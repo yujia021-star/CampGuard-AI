@@ -199,16 +199,17 @@
             document.getElementById('insightContainer').innerHTML = html;
             
             // 下部の気温に「💧雨」と「💨風」を元のデザインを崩さず追加
-            document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `
-    <div class="t-item" style="min-width:70px; padding:10px 5px;">
-        <div style="font-size:0.75rem; opacity:0.8;">${t.time}</div>
-        <img src="https://openweathermap.org/img/wn/${t.icon}.png" width="35">
-        <div style="font-weight:bold; font-size:1rem; margin-bottom:4px;">${t.temp}℃</div>
+            // --- HTMLの diagnose 関数内の resTimeline 部分を以下に差し替え ---
+document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `
+    <div class="t-item" style="min-width:85px; padding:10px 5px; flex-shrink:0;">
+        <div style="font-size:0.75rem; opacity:0.8; margin-bottom:2px;">${t.time}</div>
+        <img src="https://openweathermap.org/img/wn/${t.icon}.png" width="35" style="margin:0 auto;">
+        <div style="font-weight:bold; font-size:1.1rem; margin-bottom:8px;">${t.temp}℃</div>
         
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2px; font-size:0.65rem; text-align:left; padding-left:8px;">
-            <div title="雨量" style="color:#38bdf8;">☔️${t.rain||0}</div>
-            <div title="湿度" style="color:#a855f7;">💧${t.humidity}%</div>
-            <div title="風速" style="color:#f59e0b; grid-column: span 2;">🌬️${t.wind}m/s</div>
+        <div style="font-size:0.7rem; text-align:left; padding-left:10px; line-height:1.4;">
+            <div style="color:#38bdf8;">☔️ ${t.rain||0}mm</div>
+            <div style="color:#a855f7;">💧 ${t.humidity}%</div>
+            <div style="color:#f59e0b;">🌬️ ${t.wind}m/s</div>
         </div>
     </div>`).join('');
         } catch(e) { alert("判定エラー"); }
