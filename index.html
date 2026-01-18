@@ -200,13 +200,17 @@
             
             // 下部の気温に「💧雨」と「💨風」を元のデザインを崩さず追加
             document.getElementById('resTimeline').innerHTML = data.timeline.map(t => `
-                <div class="t-item">
-                    <div>${t.time}</div>
-                    <img src="https://openweathermap.org/img/wn/${t.icon}.png" width="30">
-                    <div>${t.temp}℃</div>
-                    <div style="font-size:0.6rem; color:#38bdf8;">💧${t.rain||0}</div>
-                    <div style="font-size:0.6rem; color:#f59e0b;">💨${t.wind||0}</div>
-                </div>`).join('');
+    <div class="t-item" style="min-width:70px; padding:10px 5px;">
+        <div style="font-size:0.75rem; opacity:0.8;">${t.time}</div>
+        <img src="https://openweathermap.org/img/wn/${t.icon}.png" width="35">
+        <div style="font-weight:bold; font-size:1rem; margin-bottom:4px;">${t.temp}℃</div>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2px; font-size:0.65rem; text-align:left; padding-left:8px;">
+            <div title="雨量" style="color:#38bdf8;">☔️${t.rain||0}</div>
+            <div title="湿度" style="color:#a855f7;">💧${t.humidity}%</div>
+            <div title="風速" style="color:#f59e0b; grid-column: span 2;">🌬️${t.wind}m/s</div>
+        </div>
+    </div>`).join('');
         } catch(e) { alert("判定エラー"); }
         document.getElementById('loader').style.display = 'none';
     }
